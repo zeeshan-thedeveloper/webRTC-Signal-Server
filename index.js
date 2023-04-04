@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const { storageManager } = require("./storage-manager/storage-manager");
+let localStorageManager = storageManager();
 const app = express();
 app.use(cors());
 
@@ -15,10 +17,9 @@ const io = require("socket.io")(server);
 
 io.on("connection", (socket) => {
   console.log("New user joined socket : " + socket.id);
-  socket.on("message", (data) => {
-    console.log(data);
-    io.to(socket.id).emit("response", "You are connected to socket");
-  });
+  io.to(socket.id).emit("response", "You are connected to socket");
+  io.to(socket.id).emit("socketId", socket.id);
+
   socket.on("getCallId", (data) => {
     console.log(`Received getCallId request from ${socket.id}`);
 
@@ -31,21 +32,129 @@ io.on("connection", (socket) => {
     console.log(`Sent callId ${callId} to ${socket.id}`);
   });
 
-  socket.on("initiate-call", ({ userName, callId, offer }, callback) => {
+  socket.on(
+    "initiate-call",
+    ({ userName, callId, offer, socketId }, callback) => {
+      console.log(
+        `Received call initiation request from ${userName} for call ${callId}.`,
+        offer
+      );
+      localStorageManager.storeOffer(callId,socketId ,offer );
+      console.log("Stored call offer : ",localStorageManager.getOffer(callId))
+      const callStatus = {
+        success: true,
+        message: `Call initiated for ${callId}.`,
+      };
+      callback(callStatus);
+    }
+  );
+
+  socket.on("makeJoinRequest", ({ userName, callId, socketId }, callback) => {
     console.log(
-      `Received call initiation request from ${userName} for call ${callId}.`
-    ,offer);
+      `Received join call request from ${userName} for call ${callId}.`
+    );
 
-    // Perform the necessary actions for call initiation, such as creating a new call object, sending call invitations, etc.
+    // Retrieve the socket ID associated with the call ID from the cache
+    // this socket id is the id of one who has created meeting or call
+    const hostSocketId = localStorageManager.getCallCreatorSocketId(callId);
+    console.log(`socket id of host of call ${callId} is : `,hostSocketId)
+    if (!hostSocketId) {
+      const error = {
+        success: false,
+        message: `Socket ID not found for call ${callId}.`,
+      };
+      socket.emit("makeJoinRequestError", error);
+      return;
+    }
 
-    // Once the actions are performed, emit the call status back to the client.
-    const callStatus = {
-      success: true,
-      message: `Call initiated for ${callId}.`,
-      // You can also include any other relevant information in the call status object.
+    // Store the join offer in the cache for the given call ID and socket ID
+    localStorageManager.storeJoinRequest(callId, socketId ,userName);
+    console.log("Stored join request : ",localStorageManager.getJoinRequest(socketId))
+    // Emit the "joinRequest" event to the socket ID associated with the call ID
+    const joinData = {
+      userName,
+      socketId
     };
-    callback(callStatus);
+
+    io.to(hostSocketId).emit("joinRequest", joinData);
+    // Return success status to the client
+    const status = {
+      success: true,
+      message: "Join request sent successfully.",
+    };
+    callback(status);
   });
+
+
+  socket.on("sendAcceptJoinRequest", ({ callId, socketId }, callback) => {
+    console.log(
+      `Received accept join request for ${callId} of ${socketId}`
+    );
+
+    // Retrieve the socket ID associated with the call ID from the cache
+    // this socket id is the id of one who has created meeting or call
+    const offer = localStorageManager.getOffer(callId);
+    
+    if (!offer) {
+      const error = {
+        success: false,
+        message: `Offer  not found for id ${callId}.`,
+      };
+      socket.emit("sendAcceptJoinRequestError", error);
+      return;
+    }
+
+    // Emit the "requestStatus" event to the socket ID associated with the call ID
+    const joinData = {
+      remoteOffer : offer.offer,
+      isAccepted:true
+    };
+
+    io.to(socketId).emit("requestStatus", joinData);
+
+    // Return success status to the client
+    const status = {
+      success: true,
+      message: "Request acceptance sent successfully.",
+    };
+    callback(status);
+  });
+  
+
+  socket.on("joinCall", ({ userName, callId, joinOffer,socketId }, callback) => {
+    console.log(
+      `Received  join call request for ${callId} from ${socketId}`
+    );
+
+    // Retrieve the socket ID associated with the call ID from the cache
+    const hostSocketId = localStorageManager.getCallCreatorSocketId(callId);
+      
+    if (!hostSocketId) {
+      const error = {
+        success: false,
+        message: `Socket is not found for call id ${callId}.`,
+      };
+      socket.emit("joinCallError", error);
+      return;
+    }
+
+    // Emit the "requestStatus" event to the socket ID associated with the call ID
+    const data = {
+      remoteOffer : joinOffer,
+      userName,
+      socketId
+    };
+
+    io.to(hostSocketId).emit("userToAddInCall", data);
+
+    // Return success status to the client
+    const status = {
+      success: true,
+      message: "Request acceptance sent successfully.",
+    };
+    callback(status);
+  });
+  
 
   socket.on("disconnect", () => {
     console.log("A user disconnected");
