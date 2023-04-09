@@ -40,7 +40,7 @@ io.on("connection", (socket) => {
         offer
       );
       localStorageManager.storeOffer(callId,socketId ,offer );
-      console.log("Stored call offer : ",localStorageManager.getOffer(callId))
+      
       const callStatus = {
         success: true,
         message: `Call initiated for ${callId}.`,
@@ -73,7 +73,8 @@ io.on("connection", (socket) => {
     // Emit the "joinRequest" event to the socket ID associated with the call ID
     const joinData = {
       userName,
-      socketId
+      socketId,
+      id : new Date().getMilliseconds()
     };
 
     io.to(hostSocketId).emit("joinRequest", joinData);
@@ -105,9 +106,11 @@ io.on("connection", (socket) => {
     }
 
     // Emit the "requestStatus" event to the socket ID associated with the call ID
+
     const joinData = {
       remoteOffer : offer.offer,
-      isAccepted:true
+      isAccepted:true,
+      id : new Date().getMilliseconds()
     };
 
     io.to(socketId).emit("requestStatus", joinData);
@@ -123,7 +126,7 @@ io.on("connection", (socket) => {
 
   socket.on("joinCall", ({ userName, callId, joinOffer,socketId }, callback) => {
     console.log(
-      `Received  join call request for ${callId} from ${socketId}`
+      `Received  join call request for ${callId} from ${socketId} with userName ${userName}`
     );
 
     // Retrieve the socket ID associated with the call ID from the cache
@@ -142,7 +145,8 @@ io.on("connection", (socket) => {
     const data = {
       remoteOffer : joinOffer,
       userName,
-      socketId
+      socketId,
+      id : new Date().getMilliseconds()
     };
 
     io.to(hostSocketId).emit("userToAddInCall", data);
