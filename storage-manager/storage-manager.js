@@ -1,8 +1,8 @@
 const storageManager = () => {
-    
   const offerCache = new Map();
   const joinOfferCache = new Map();
   const joinRequestCache = new Map();
+  const iceCandidatesCache = new Map();
   // Store an offer in the cache for a given call ID and socket ID
   const storeOffer = (callId, socketId, offer) => {
     offerCache.set(callId, { socketId, offer });
@@ -22,7 +22,6 @@ const storageManager = () => {
 
   // Retrieve the socket ID associated with a call ID from the cache
   const getCallCreatorSocketId = (callId) => {
-
     const socketId = offerCache.get(callId);
     if (!socketId) {
       console.log(`No socket ID found for call ${callId} in cache.`);
@@ -39,7 +38,12 @@ const storageManager = () => {
     joinOfferCache.set(socketId, { callId, joinOffer });
     console.log(`Stored join offer for call ${callId} in cache.`);
   };
-  
+
+  const storeICECandidate = (socketId, iceCandidates) => {
+      iceCandidatesCache.set(socketId, {iceCandidates});
+      console.log(`Stored icecandidate for socketId ${socketId} in cache.`);  
+  };
+
   const storeJoinRequest = (callId, socketId, userName) => {
     joinRequestCache.set(socketId, { callId, userName });
     console.log(`Stored join request for call ${callId} in cache.`);
@@ -50,9 +54,19 @@ const storageManager = () => {
       console.log(`No join request found for socket ${socketId} in cache.`);
       return null;
     }
-
-    console.log(`Retrieved join request for socket ${socketId} from cache.`);
-    return joinRequest;
+  };
+  const getICECandidate = (socketId) => {
+    const icecandidate = iceCandidatesCache.get(socketId);
+    if (!icecandidate) {
+      console.log(
+        `No ICECandidate object found for socket ${socketId} in cache.`
+      );
+      return null;
+    }
+    console.log(
+      `Retrieved join request for socket ${icecandidate} from cache.`
+    );
+    return icecandidate;
   };
   // Retrieve a join offer from the cache for a given socket ID
   const getJoinOffer = (socketId) => {
@@ -61,11 +75,23 @@ const storageManager = () => {
       console.log(`No join offer found for socket ${socketId} in cache.`);
       return null;
     }
-    console.log(`Retrieved join offer for call ${joinOfferData.callId} from cache.`);
+    console.log(
+      `Retrieved join offer for call ${joinOfferData.callId} from cache.`
+    );
     return joinOfferData.joinOffer;
   };
 
-  return { storeOffer, getOffer, getCallCreatorSocketId,storeJoinOffer,getJoinOffer,storeJoinRequest,getJoinRequest };
+  return {
+    storeOffer,
+    getOffer,
+    getCallCreatorSocketId,
+    storeJoinOffer,
+    getJoinOffer,
+    storeJoinRequest,
+    getJoinRequest,
+    storeICECandidate,
+    getICECandidate
+  };
 };
 
 module.exports = { storageManager };
