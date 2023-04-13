@@ -15,6 +15,7 @@ const storageManager = () => {
     callDescription
   ) => {
     let call = {
+      callId,
       callType,
       hostId,
       hostSocketId,
@@ -94,15 +95,13 @@ const storageManager = () => {
   }
 
   // join requests
-  const addJoinRequest=(callId,requestId,requesterSocketId,requestStatus)=>{
+  const addJoinRequest=(callId,requestId,requesterSocketId,requestStatus,requesterName)=>{
     let joinRequest={
-      requestId,requesterSocketId,requestStatus
+      callId,requesterSocketId,requestStatus,requesterName
     }
-    let allJoinRequestsOfGivenCallId = joinRequests.get(callId);
-    allJoinRequestsOfGivenCallId.push(joinRequest);
-
-    joinRequests.set(callId,allJoinRequestsOfGivenCallId);
-    return allJoinRequestsOfGivenCallId;
+    
+    joinRequests.set(requestId,joinRequest);
+    return joinRequest;
   }
 
   const updateJoinRequestStatus=(callId,requestId,requesterSocketId,requestStatus)=>{
@@ -117,6 +116,16 @@ const storageManager = () => {
     joinRequests.set(callId,allJoinRequestsOfGivenCallId);
     return allJoinRequestsOfGivenCallId;
   }
+
+  const getCallByCallId=(callId)=>{
+    return calls.get(callId)
+  }
+  const getSocketIdOfCallHostByCallId=(callId)=>{
+    return calls.get(callId).hostSocketId
+  }
+  const getRequestByRequestId=(requestId)=>{
+    return joinRequests.get(requestId)
+  }
   
   return {
     addNewCall,
@@ -125,7 +134,10 @@ const storageManager = () => {
     addIceCandidatesIntoCandidate,
     updateIsConnectedFlagForCandidate,
     addJoinRequest,
-    updateJoinRequestStatus
+    updateJoinRequestStatus,
+    getCallByCallId,
+    getRequestByRequestId,
+    getSocketIdOfCallHostByCallId
   };
 };
 
