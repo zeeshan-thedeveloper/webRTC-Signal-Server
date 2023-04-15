@@ -43,14 +43,15 @@ io.on("connection", (socket) => {
   io.to(socket.id).emit("recieveSocketId", socket.id);
 
   socket.on(
-    "startOneToOneCall",
-    ({ socketId, callTitle, callDescription }, callback) => {
+    "createCall",
+    ({ socketId, callTitle, callDescription, callType }, callback) => {
+
       console.log(
-        `Request to create call with title : ${callTitle} from socket : ${socketId}`
+        `Request to create call with title : ${callTitle} from socket : ${socketId} | callType : ${callType}`
       );
 
+
       let callId = generateRandomCallID();
-      let callType = "oneToOne";
       let hostName = socketId;
       let hostId = socketId;
       let hostSocketId = socketId;
@@ -70,7 +71,7 @@ io.on("connection", (socket) => {
       const response = {
         success: true,
         callId,
-        message: "Request startOneToOneCall recieved successfully.",
+        message: "Request startPrivateCall recieved successfully.",
       };
 
       callback(response);
@@ -78,7 +79,7 @@ io.on("connection", (socket) => {
   );
 
   socket.on(
-    "makeOneToOneCallJoiningRequest",
+    "makeJoinCallRequest",
     ({ callId, candidateName, socketId }, callback) => {
       let requestId = generateRandomRequestID();
       let requesterSocketId = socketId;
@@ -98,12 +99,12 @@ io.on("connection", (socket) => {
       let hostSocketId =
         localStorageManager.getSocketIdOfCallHostByCallId(callId);
       console.log("host socket id", socketId);
-      
+
       io.to(hostSocketId).emit(
         "listenJoinRequest",
-        localStorageManager.getRequestByRequestId(requestId)
+        { requestPayload: localStorageManager.getRequestByRequestId(requestId),requestId}
       );
-        
+
       const response = {
         success: true,
         requestId,
@@ -115,46 +116,14 @@ io.on("connection", (socket) => {
     }
   );
 
-  socket.on("updateOneToOneCallRequestStatus", ({ socketId }, callback) => {
+  socket.on("updateJoinCallRequestStatus", ({ requestId,status,socketId }, callback) => {
+    //Here we need to notify all candidates of call about this new connection
+    console.log("before updating request :",localStorageManager.getRequestByRequestId(requestId)); 
+    localStorageManager.updateJoinRequestStatus(requestId,status);
+    console.log("updated request :",localStorageManager.getRequestByRequestId(requestId)); 
     const response = {
       success: true,
-      message: "Request updateOneToOneCallRequestStatus recieved successfully.",
-    };
-
-    callback(response);
-  });
-
-  socket.on("startGroupCall", ({ socketId }, callback) => {
-    const response = {
-      success: true,
-      message: "Request startGroupCall recieved successfully.",
-    };
-
-    callback(response);
-  });
-
-  socket.on("makeGroupCallJoiningRequest", ({ socketId }, callback) => {
-    const response = {
-      success: true,
-      message: "Request makeGroupCallJoiningRequest recieved successfully.",
-    };
-
-    callback(response);
-  });
-
-  socket.on("updateGroupCallRequestStatus", ({ socketId }, callback) => {
-    const response = {
-      success: true,
-      message: "Request updateGroupCallRequestStatus recieved successfully.",
-    };
-
-    callback(response);
-  });
-
-  socket.on("joinGroupCall", ({ socketId }, callback) => {
-    const response = {
-      success: true,
-      message: "Request joinGroupCall recieved successfully.",
+      message: "Request for updating join request recieved successfully.",
     };
 
     callback(response);

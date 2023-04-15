@@ -104,22 +104,16 @@ const storageManager = () => {
     return joinRequest;
   }
 
-  const updateJoinRequestStatus=(callId,requestId,requesterSocketId,requestStatus)=>{
-    let allJoinRequestsOfGivenCallId = joinRequests.get(callId);
-    allJoinRequestsOfGivenCallId.map((request)=>{
-      if(request.requestId===requestId){
-        request.requestStatus=requestStatus
-        return request;
-      }
-      return request;
-    })
-    joinRequests.set(callId,allJoinRequestsOfGivenCallId);
-    return allJoinRequestsOfGivenCallId;
+  const updateJoinRequestStatus=(requestId,requestStatus)=>{
+    let joinRequest = joinRequests.get(requestId);
+    joinRequest.requestStatus=requestStatus
+    return joinRequest;
   }
 
   const getCallByCallId=(callId)=>{
     return calls.get(callId)
   }
+
   const getSocketIdOfCallHostByCallId=(callId)=>{
     return calls.get(callId).hostSocketId
   }
