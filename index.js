@@ -45,11 +45,9 @@ io.on("connection", (socket) => {
   socket.on(
     "createCall",
     ({ socketId, callTitle, callDescription, callType }, callback) => {
-
       console.log(
         `Request to create call with title : ${callTitle} from socket : ${socketId} | callType : ${callType}`
       );
-
 
       let callId = generateRandomCallID();
       let hostName = socketId;
@@ -100,10 +98,10 @@ io.on("connection", (socket) => {
         localStorageManager.getSocketIdOfCallHostByCallId(callId);
       console.log("host socket id", socketId);
 
-      io.to(hostSocketId).emit(
-        "listenJoinRequest",
-        { requestPayload: localStorageManager.getRequestByRequestId(requestId),requestId}
-      );
+      io.to(hostSocketId).emit("listenJoinRequest", {
+        requestPayload: localStorageManager.getRequestByRequestId(requestId),
+        requestId,
+      });
 
       const response = {
         success: true,
@@ -116,19 +114,98 @@ io.on("connection", (socket) => {
     }
   );
 
-  socket.on("updateJoinCallRequestStatus", ({ requestId,status,socketId }, callback) => {
-    //Here we need to notify all candidates of call about this new connection
-    console.log("before updating request :",localStorageManager.getRequestByRequestId(requestId)); 
-    localStorageManager.updateJoinRequestStatus(requestId,status);
-    console.log("updated request :",localStorageManager.getRequestByRequestId(requestId)); 
-    const response = {
-      success: true,
-      message: "Request for updating join request recieved successfully.",
-    };
+  socket.on(
+    "updateJoinCallRequestStatus",
+    ({ requestId, hostIceCandidates, offer, status, socketId }, callback) => {
+      //Here we need to notify all candidates of call about this new connection
+      //updating request status
+      let request = localStorageManager.updateJoinRequestStatus(
+        requestId,
+        status
+      );
+      console.log("updated request : ", request);
+      let requesterName = request.requesterName;
+      let callId = request.callId;
+      let requesterSocketId = request.requesterSocketId;
+      let hostSocketId = socketId;
+      let newCandidate = localStorageManager.addCandidateToCall(
+        callId,
+        requesterName,
+        requesterSocketId,
+        hostIceCandidates,
+        offer
+      );
+      let completeCall = localStorageManager.getCallByCallId(callId);
+      console.log("newCandidate", newCandidate);
+      console.log("completeCall", completeCall);
 
-    callback(response);
-  });
+      //now storing hostICE-candidates
+      //Now emit an event for new candidate "listenHostOffer";
+      let callHostName = completeCall.hostName;
+      //we can send other details of call from here as well.
 
+      io.to(requesterSocketId).emit("listenHostOffer", {
+        hostOffer: offer,
+        hostIceCandidates,
+        requestId,
+        hostName: callHostName,
+        hostSocketId,
+        requesterName,
+      });
+
+      //Now emit an event for all other candidates of given call Id : ;
+
+      const response = {
+        success: true,
+        newCandidate,
+        message: "Request for updating join request recieved successfully.",
+      };
+
+      callback(response);
+    }
+  );
+
+  socket.on(
+    "updateRemoteClientIceCandidates",
+    (
+      {
+        remoteSocketId,
+        requestId,
+        answerOffer,
+        localIceCandidates,
+        callId,
+        socketId,
+      },
+      callback
+    ) => {
+      //we need to update call with client
+      let updatedCandidate = localStorageManager.addIceCandidatesIntoCandidate(
+        callId,
+        socketId,
+        localIceCandidates
+      );
+      console.log("updatedCandidate", updatedCandidate);
+      console.log("remoteSocketId", remoteSocketId);
+      io.to(remoteSocketId).emit("listenCandidateICECandidates", {
+        requestId,
+        payload: {
+          candidateName: updatedCandidate.candidateName,
+          answerOffer,
+          localIceCandidates,
+        },
+      });
+
+      //Now emit an event for all other candidates of given call Id : ;
+
+      const response = {
+        success: true,
+        updatedCandidate,
+        message: "Request for updating remote client ice candidates.",
+      };
+
+      callback(response);
+    }
+  );
   socket.on("disconnect", () => {
     console.log("A user disconnected");
   });

@@ -25,7 +25,6 @@ const storageManager = () => {
         callDescription,
       },
       callCandidates: [],
-      hostICECandidates: [],
     };
 
     calls.set(callId, call);
@@ -37,14 +36,16 @@ const storageManager = () => {
     callId,
     candidateName,
     candidateSocketId,
-    isConnected
+    hostIceCandidates,
+    hostOffer
   ) => {
     let call = calls.get(callId);
     let candidate = {
       candidateName,
       candidateSocketId,
-      isConnected,
-      iceCandidates: [],
+      candidateIceCandidates: [],
+      hostIceCandidates,
+      hostOffer
     };
     call.callCandidates.push(candidate);
     calls.set(callId, call);
@@ -63,10 +64,12 @@ const storageManager = () => {
     candidateSocketId,
     iceCandidates
   ) => {
+    let updatedCandidate = null;
     let call = calls.get(callId);
     call.callCandidates.map((candidate) => {
       if (candidate.candidateSocketId === candidateSocketId) {
-        candidate.iceCandidates = iceCandidates;
+        candidate.candidateIceCandidates = iceCandidates;
+        updatedCandidate = candidate;
         return candidate;
       } else {
         return candidate;
@@ -75,7 +78,7 @@ const storageManager = () => {
 
     calls.set(callId, call);
 
-    return call;
+    return updatedCandidate;
   };
 
   const updateIsConnectedFlagForCandidate=(callId,candidateSocketId,isConnected)=>{
