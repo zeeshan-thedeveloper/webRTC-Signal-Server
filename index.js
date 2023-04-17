@@ -9,7 +9,8 @@ app.get("/", (req, res) => {
   res.send("webRTC-Signal-server");
 });
 
-const server = app.listen(8080, () => {
+const port = process.env.PORT || 8080;
+const server = app.listen(port, () => {
   console.log("Server started on port 8080");
 });
 
@@ -23,7 +24,7 @@ function generateRandomCallID() {
   for (let i = 0; i < length; i++) {
     randomID += digits.charAt(Math.floor(Math.random() * digits.length));
   }
-  
+
   return randomID;
 }
 
