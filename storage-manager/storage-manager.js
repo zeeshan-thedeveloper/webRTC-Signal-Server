@@ -1,8 +1,7 @@
-
 const storageManager = () => {
-
   const calls = new Map();
   const joinRequests = new Map();
+  const groupRequests = new Map();
 
   // Calls related operation
   const addNewCall = (
@@ -37,7 +36,8 @@ const storageManager = () => {
     candidateName,
     candidateSocketId,
     hostIceCandidates,
-    hostOffer
+    hostOffer,
+    isConnected
   ) => {
     let call = calls.get(callId);
     let candidate = {
@@ -45,7 +45,8 @@ const storageManager = () => {
       candidateSocketId,
       candidateIceCandidates: [],
       hostIceCandidates,
-      hostOffer
+      hostOffer,
+      isConnected,
     };
     call.callCandidates.push(candidate);
     calls.set(callId, call);
@@ -81,11 +82,17 @@ const storageManager = () => {
     return updatedCandidate;
   };
 
-  const updateIsConnectedFlagForCandidate=(callId,candidateSocketId,isConnected)=>{
+  const updateIsConnectedFlagForCandidate = (
+    callId,
+    candidateSocketId,
+    isConnected
+  ) => {
     let call = calls.get(callId);
+    let updatedCandidate = null;
     call.callCandidates.map((candidate) => {
       if (candidate.candidateSocketId === candidateSocketId) {
         candidate.isConnected = isConnected;
+        updatedCandidate = candidate;
         return candidate;
       } else {
         return candidate;
@@ -95,35 +102,94 @@ const storageManager = () => {
     calls.set(callId, call);
 
     return call;
-  }
+  };
 
   // join requests
-  const addJoinRequest=(callId,requestId,requesterSocketId,requestStatus,requesterName)=>{
-    let joinRequest={
-      callId,requesterSocketId,requestStatus,requesterName
-    }
-    
-    joinRequests.set(requestId,joinRequest);
-    return joinRequest;
-  }
+  const addJoinRequest = (
+    callId,
+    requestId,
+    requesterSocketId,
+    requestStatus,
+    requesterName
+  ) => {
+    let joinRequest = {
+      callId,
+      requesterSocketId,
+      requestStatus,
+      requesterName,
+    };
 
-  const updateJoinRequestStatus=(requestId,requestStatus)=>{
+    joinRequests.set(requestId, joinRequest);
+    return joinRequest;
+  };
+
+  const updateJoinRequestStatus = (requestId, requestStatus) => {
     let joinRequest = joinRequests.get(requestId);
-    joinRequest.requestStatus=requestStatus
+    joinRequest.requestStatus = requestStatus;
     return joinRequest;
-  }
+  };
 
-  const getCallByCallId=(callId)=>{
-    return calls.get(callId)
-  }
+  const getCallByCallId = (callId) => {
+    return calls.get(callId);
+  };
 
-  const getSocketIdOfCallHostByCallId=(callId)=>{
-    return calls.get(callId).hostSocketId
-  }
-  const getRequestByRequestId=(requestId)=>{
-    return joinRequests.get(requestId)
+  const getSocketIdOfCallHostByCallId = (callId) => {
+    return calls.get(callId).hostSocketId;
+  };
+  const getRequestByRequestId = (requestId) => {
+    return joinRequests.get(requestId);
+  };
+
+  const getListOfConnectedCandidatesByCallId = (callId) => {
+    let allCandidates = [];
+    allCandidates = calls.get(callId).callCandidates.map((candidate) => {
+      if (candidate.isConnected == "connected") {
+        return candidate;
+      }
+    });
+    return allCandidates;
+  };
+
+  const addNewGroupRequest = (
+    requestId,
+    hostIceCandidates,
+    offer,
+    hostSocketId,
+    candidateSocketId,
+    callId,
+    hostName
+  ) => {
+    let request = {
+      requestId,
+      hostIceCandidates,
+      offer,
+      hostSocketId,
+      candidateSocketId,
+      callId,
+      hostName,
+    };
+    groupRequests.set(requestId, request);
+    return request;
+  };
+
+  const updateGroupRequestByAddingCandidateICECandidates = (
+    requestId,
+    candidateIceCandidates,
+    candidateName
+  ) => {
+    let request = groupRequests.get(requestId);
+    request.candidateIceCandidates = candidateIceCandidates;
+    request.candidateName=candidateName
+    return request;
+  };
+
+  const updateConnectionStatusForGroupRequest=(requestId,status)=>{
+    let request = groupRequests.get(requestId);
+    request.isConnected = status;
+    return request
   }
   
+
   return {
     addNewCall,
     addCandidateToCall,
@@ -134,7 +200,11 @@ const storageManager = () => {
     updateJoinRequestStatus,
     getCallByCallId,
     getRequestByRequestId,
-    getSocketIdOfCallHostByCallId
+    getSocketIdOfCallHostByCallId,
+    getListOfConnectedCandidatesByCallId,
+    addNewGroupRequest,
+    updateGroupRequestByAddingCandidateICECandidates,
+    updateConnectionStatusForGroupRequest
   };
 };
 
