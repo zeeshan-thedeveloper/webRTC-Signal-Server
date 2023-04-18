@@ -19,7 +19,7 @@ const io = require("socket.io")(server);
 function generateRandomCallID() {
   let randomID = "";
   const digits = "0123456789";
-  const length = 16;
+  const length = 5;
 
   for (let i = 0; i < length; i++) {
     randomID += digits.charAt(Math.floor(Math.random() * digits.length));
